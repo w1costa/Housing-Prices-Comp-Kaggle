@@ -11,9 +11,7 @@ the logarithm of the observed sales price.
 
 import os
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import cross_val_score
 
@@ -25,45 +23,34 @@ submission_file = os.path.join(os.path.dirname(__file__), 'submission.csv')
 X_full = pd.read_csv(train_file, index_col='Id')
 X_test_full = pd.read_csv(test_file, index_col='Id')
 
-# Remove rows with missing target, separate target from predictors
+# Remove rows with missing target, define target, and separate target from features
 X_full.dropna(axis=0, subset=['SalePrice'], inplace=True)
 y = X_full.SalePrice
 X_full.drop(['SalePrice'], axis=1, inplace=True)
 
-# To keep things simple, we'll use only numerical predictors
+# Only keep numerical features ('object' is the type used to refer to strings)
 X = X_full.select_dtypes(exclude=['object'])
 X_test = X_test_full.select_dtypes(exclude=['object'])
 
-# Break off validation set from training data
-X_train, X_valid, y_train, y_valid = train_test_split(X, y, train_size=0.8, test_size=0.2, random_state=0)
-
 # Fill in the line below: get names of columns with missing values
-cols_with_missing = [col for col in X_train.columns if X_train[col].isnull().any()]
+cols_with_missing = [col for col in X.columns if X[col].isnull().any()]
 
 # Fill in the lines below: drop columns in training and validation data
-reduced_X_train = X_train.drop(cols_with_missing, axis=1)
-reduced_X_valid = X_valid.drop(cols_with_missing, axis=1)
+reduced_X = X.drop(cols_with_missing, axis=1)
 
 # Imputation
 final_imputer = SimpleImputer(strategy='median')
-final_X_train = pd.DataFrame(final_imputer.fit_transform(reduced_X_train))
-final_X_valid = pd.DataFrame(final_imputer.transform(reduced_X_valid))
+final_X = pd.DataFrame(final_imputer.fit_transform(reduced_X))
 
 # Imputation removed column names; put them back
-final_X_train.columns = reduced_X_train.columns
-final_X_valid.columns = reduced_X_valid.columns
+final_X.columns = reduced_X.columns
 
 # Define and fit model
 model = RandomForestRegressor(n_estimators=100, random_state=0)
-model.fit(final_X_train, y_train)
-
-# Get validation predictions and MAE
-# preds_valid = model.predict(final_X_valid)
-# print("MAE (Your approach):")
-# print(round(mean_absolute_error(y_valid, preds_valid), 2))
+model.fit(final_X, y)
 
 # Define cross-validation
-scores = -1 * cross_val_score(model, final_X_train, y_train, cv=5, scoring='neg_mean_absolute_error')
+scores = -1 * cross_val_score(model, final_X, y, cv=5, scoring='neg_mean_absolute_error')
 
 # Print mean score and standard deviation
 print("MAE scores:\n", scores)
