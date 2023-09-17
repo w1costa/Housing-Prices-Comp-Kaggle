@@ -11,7 +11,10 @@ the logarithm of the observed sales price.
 
 import os
 import pandas as pd
+import numpy as np
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import cross_val_score
 
@@ -28,6 +31,8 @@ X_full.dropna(axis=0, subset=['SalePrice'], inplace=True)
 y = X_full.SalePrice
 X_full.drop(['SalePrice'], axis=1, inplace=True)
 
+# print(X_full.info())
+
 # Only keep numerical features ('object' is the type used to refer to strings)
 X = X_full.select_dtypes(exclude=['object'])
 X_test = X_test_full.select_dtypes(exclude=['object'])
@@ -38,6 +43,8 @@ cols_with_missing = [col for col in X.columns if X[col].isnull().any()]
 # Fill in the lines below: drop columns in training and validation data
 reduced_X = X.drop(cols_with_missing, axis=1)
 
+print(reduced_X.info())
+
 # Imputation
 final_imputer = SimpleImputer(strategy='median')
 final_X = pd.DataFrame(final_imputer.fit_transform(reduced_X))
@@ -46,18 +53,25 @@ final_X = pd.DataFrame(final_imputer.fit_transform(reduced_X))
 final_X.columns = reduced_X.columns
 
 # Define and fit model
-model = RandomForestRegressor(n_estimators=100, random_state=0)
+# model = RandomForestRegressor(n_estimators=100, random_state=0)
+model = LinearRegression(max_iter=1000, random_state=0)
 model.fit(final_X, y)
 
 # Define cross-validation
-scores = -1 * cross_val_score(model, final_X, y, cv=5, scoring='neg_mean_absolute_error')
+mae_scores = -1 * cross_val_score(model, final_X, y, cv=5, scoring='neg_mean_absolute_error')
+rmse_scores = np.sqrt(-1 * cross_val_score(model, final_X, y, cv=5, scoring='neg_mean_squared_error'))
+# rmse_scores = np.sqrt(scores)
+# rmse = np.mean(rmse_scores)
+# rmse = mean_squared_error(y_valid, preds_valid, squared=False)
 
 # Print mean score and standard deviation
-print("MAE scores:\n", scores)
+# print("MAE scores:\n", mae_scores)
 print("Average MAE score (across experiments):")
-print(round(scores.mean(), 2))
+print(round(mae_scores.mean(), 2))
 print("Standard deviation of MAE scores:")
-print(round(scores.std(), 2))
+print(round(mae_scores.std(), 2))
+# print("RMSE scores:\n", rmse_scores)
+print("Average RMSE:", round(rmse_scores.mean(), 2))
 
 # Preprocess test data
 reduced_X_test = X_test.drop(cols_with_missing, axis=1)
@@ -72,5 +86,5 @@ final_X_test.columns = reduced_X_test.columns
 preds_test = model.predict(final_X_test)
 
 # Save test predictions to file
-output = pd.DataFrame({'Id': X_test.index,'SalePrice': preds_test})
-output.to_csv(submission_file, index=False)
+# output = pd.DataFrame({'Id': X_test.index,'SalePrice': preds_test})
+# output.to_csv(submission_file, index=False)
