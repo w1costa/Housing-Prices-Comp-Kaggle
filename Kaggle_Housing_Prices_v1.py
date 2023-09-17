@@ -12,7 +12,7 @@ the logarithm of the observed sales price.
 import os
 import pandas as pd
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.impute import SimpleImputer
@@ -43,26 +43,23 @@ cols_with_missing = [col for col in X.columns if X[col].isnull().any()]
 # Fill in the lines below: drop columns in training and validation data
 reduced_X = X.drop(cols_with_missing, axis=1)
 
-print(reduced_X.info())
+# print(reduced_X.info())
 
 # Imputation
-final_imputer = SimpleImputer(strategy='median')
-final_X = pd.DataFrame(final_imputer.fit_transform(reduced_X))
+# final_imputer = SimpleImputer(strategy='median')
+# final_X = pd.DataFrame(final_imputer.fit_transform(reduced_X))
 
 # Imputation removed column names; put them back
-final_X.columns = reduced_X.columns
+# final_X.columns = reduced_X.columns
 
 # Define and fit model
 # model = RandomForestRegressor(n_estimators=100, random_state=0)
-model = LinearRegression(max_iter=1000, random_state=0)
-model.fit(final_X, y)
+model = RandomForestRegressor(n_estimators=100, random_state=0)
+model.fit(reduced_X, y)
 
 # Define cross-validation
-mae_scores = -1 * cross_val_score(model, final_X, y, cv=5, scoring='neg_mean_absolute_error')
-rmse_scores = np.sqrt(-1 * cross_val_score(model, final_X, y, cv=5, scoring='neg_mean_squared_error'))
-# rmse_scores = np.sqrt(scores)
-# rmse = np.mean(rmse_scores)
-# rmse = mean_squared_error(y_valid, preds_valid, squared=False)
+mae_scores = -1 * cross_val_score(model, reduced_X, y, cv=5, scoring='neg_mean_absolute_error')
+rmse_scores = np.sqrt(-1 * cross_val_score(model, reduced_X, y, cv=5, scoring='neg_mean_squared_error'))
 
 # Print mean score and standard deviation
 # print("MAE scores:\n", mae_scores)
@@ -74,16 +71,16 @@ print(round(mae_scores.std(), 2))
 print("Average RMSE:", round(rmse_scores.mean(), 2))
 
 # Preprocess test data
-reduced_X_test = X_test.drop(cols_with_missing, axis=1)
+# reduced_X_test = X_test.drop(cols_with_missing, axis=1)
 
 # Fill in the line below: preprocess test data
-final_X_test = pd.DataFrame(final_imputer.fit_transform(reduced_X_test))
+# final_X_test = pd.DataFrame(final_imputer.fit_transform(reduced_X_test))
 
 # Make sure test data has the same order of columns as training data
-final_X_test.columns = reduced_X_test.columns
+# final_X_test.columns = reduced_X_test.columns
 
 # Fill in the line below: get test predictions
-preds_test = model.predict(final_X_test)
+# preds_test = model.predict(reduced_X_test)
 
 # Save test predictions to file
 # output = pd.DataFrame({'Id': X_test.index,'SalePrice': preds_test})
