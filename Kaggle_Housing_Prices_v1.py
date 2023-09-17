@@ -15,6 +15,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
 from sklearn.impute import SimpleImputer
+from sklearn.model_selection import cross_val_score
 
 train_file = os.path.join(os.path.dirname(__file__), 'train.csv')
 test_file = os.path.join(os.path.dirname(__file__), 'test.csv')
@@ -43,59 +44,41 @@ cols_with_missing = [col for col in X_train.columns if X_train[col].isnull().any
 reduced_X_train = X_train.drop(cols_with_missing, axis=1)
 reduced_X_valid = X_valid.drop(cols_with_missing, axis=1)
 
-# Function for comparing different approaches
-def score_dataset(X_train, X_valid, y_train, y_valid):
-    model = RandomForestRegressor(n_estimators=100, random_state=0)
-    model.fit(X_train, y_train)
-    preds = model.predict(X_valid)
-    return mean_absolute_error(y_valid, preds)
-
-print("MAE (Drop columns with missing values):")
-print(round(score_dataset(reduced_X_train, reduced_X_valid, y_train, y_valid), 2))
-
-#Add Imputer
-
-# Fill in the lines below: imputation
-imputer = SimpleImputer()
-imputed_X_train = pd.DataFrame(imputer.fit_transform(X_train))
-imputed_X_valid = pd.DataFrame(imputer.transform(X_valid))
-
-# Fill in the lines below: imputation removed column names; put them back
-imputed_X_train.columns = X_train.columns
-imputed_X_valid.columns = X_valid.columns
-
-print("MAE (Imputation):")
-print(round(score_dataset(imputed_X_train, imputed_X_valid, y_train, y_valid), 2))
-
-# Preprocessed training and validation features
-final_X_train = reduced_X_train
-final_X_valid = reduced_X_valid
-
 # Imputation
 final_imputer = SimpleImputer(strategy='median')
-final_X_train = pd.DataFrame(final_imputer.fit_transform(X_train))
-final_X_valid = pd.DataFrame(final_imputer.transform(X_valid))
+final_X_train = pd.DataFrame(final_imputer.fit_transform(reduced_X_train))
+final_X_valid = pd.DataFrame(final_imputer.transform(reduced_X_valid))
 
 # Imputation removed column names; put them back
-final_X_train.columns = X_train.columns
-final_X_valid.columns = X_valid.columns
+final_X_train.columns = reduced_X_train.columns
+final_X_valid.columns = reduced_X_valid.columns
 
 # Define and fit model
 model = RandomForestRegressor(n_estimators=100, random_state=0)
 model.fit(final_X_train, y_train)
 
 # Get validation predictions and MAE
-preds_valid = model.predict(final_X_valid)
-print("MAE (Your approach):")
-print(round(mean_absolute_error(y_valid, preds_valid), 2))
+# preds_valid = model.predict(final_X_valid)
+# print("MAE (Your approach):")
+# print(round(mean_absolute_error(y_valid, preds_valid), 2))
 
-#X_test.info()
+# Define cross-validation
+scores = -1 * cross_val_score(model, final_X_train, y_train, cv=5, scoring='neg_mean_absolute_error')
+
+# Print mean score and standard deviation
+print("MAE scores:\n", scores)
+print("Average MAE score (across experiments):")
+print(round(scores.mean(), 2))
+print("Standard deviation of MAE scores:")
+print(round(scores.std(), 2))
+
+# Preprocess test data
 reduced_X_test = X_test.drop(cols_with_missing, axis=1)
-# Fill in the line below: preprocess test data
-final_X_test = pd.DataFrame(imputer.fit_transform(reduced_X_test))
-#final_X_test.info()
 
-# Fill in the lines below: imputation removed column names; put them back
+# Fill in the line below: preprocess test data
+final_X_test = pd.DataFrame(final_imputer.fit_transform(reduced_X_test))
+
+# Make sure test data has the same order of columns as training data
 final_X_test.columns = reduced_X_test.columns
 
 # Fill in the line below: get test predictions
@@ -103,4 +86,4 @@ preds_test = model.predict(final_X_test)
 
 # Save test predictions to file
 output = pd.DataFrame({'Id': X_test.index,'SalePrice': preds_test})
-output.to_csv('submission.csv', index=False)
+output.to_csv(submission_file, index=False)
